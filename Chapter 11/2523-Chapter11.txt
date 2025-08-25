@@ -1,0 +1,54 @@
+
+//Java - Selenium
+public class DriverManager {
+    public static WebDriver getDriver() {
+        // Return WebDriver instance per configuration
+    }
+}
+
+public class LoginPage {
+    private WebDriver driver;
+
+    public void login(String user, String pass) {
+        driver.findElement(userField).sendKeys(user);
+        driver.findElement(passField).sendKeys(pass);
+        driver.findElement(loginButton).click();
+    }
+}
+
+//TypeScript - Playwright
+export class BrowserManager {
+    static async getContext(): Promise<BrowserContext> {
+      const browser = await chromium.launch();
+      return await browser.newContext();
+    }
+  }
+
+  
+export class LoginPage {
+    constructor(private page: Page) {}
+  
+    async login(user: string, pass: string) {
+      await this.page.fill('#username', user);
+      await this.page.fill('#password', pass);
+      await this.page.click('#login');
+    }
+  }
+
+  test.describe('Login Suite', () => {
+    test('should log in successfully', async ({ page }) => {
+      const loginPage = new LoginPage(page);
+      await loginPage.login('admin', 'admin123');
+    });
+  });
+
+
+// VBScript - UFT
+  ' Function Library
+Function Login(username, password)
+  Browser("App").Page("Login").WebEdit("User").Set username
+  Browser("App").Page("Login").WebEdit("Password").Set password
+  Browser("App").Page("Login").WebButton("Login").Click
+End Function
+
+  

@@ -1,0 +1,229 @@
+#This file showcases a variety of CI/CD pipeline configurations across multiple platforms, 
+#including GitHub Actions, Jenkins, GitLab CI, Travis CI, CircleCI, and Azure DevOps. 
+#These pipelines are designed to automate tasks such as building, testing, code coverage analysis, 
+#and security scanning for projects that involve technologies like Node.js, Java, and Gradle. 
+
+#Below is an explanation of each section:
+
+#GitHub Actions: Quality Gates Pipeline
+#This YAML configuration defines a pipeline named "Quality Gates Pipeline" triggered on pushes to the main branch or pull requests. 
+#It contains three jobs:
+
+#Code Coverage:
+
+#Runs on ubuntu-latest.
+#Checks out the code using actions/checkout@v3.
+#Sets up Java 17 using actions/setup-java@v3.
+#Executes tests and generates a code coverage report using Gradle (./gradlew test jacocoTestReport).
+#Uploads coverage data to Codecov using a secret token (CODECOV_TOKEN).
+#Validates that the code coverage meets a threshold (80%). If coverage is below the threshold, the pipeline fails.
+
+#Security Scan:
+
+#Runs a security scan using Snyk (snyk/actions/cli@v3) with a secret token (SNYK_TOKEN).
+#Fails the pipeline if high or critical vulnerabilities are detected.
+
+#Testing Quality:
+
+#Runs tests using Gradle (./gradlew test) and analyzes the results.
+#Fails the pipeline if any test failures are detected in the XML test result files.
+
+#Jenkinsfile
+#The Jenkins pipeline defines two stages: Build and Test. 
+#It uses the npm install and npm test commands to install dependencies and run tests for a Node.js project. 
+#Environment variables (NODE_ENV and API_KEY) are set using Jenkins credentials.
+
+#GitLab CI
+#This configuration defines two stages: build and test. 
+#The build stage installs dependencies using npm install, while the test stage runs tests using npm test. 
+#Environment variables (NODE_ENV and API_KEY) are injected into the pipeline.
+
+#Travis CI
+#The Travis CI configuration sets global environment variables (NODE_ENV and MY_SECRET_API_KEY) 
+#and runs the npm install and npm test commands to install dependencies and execute tests.
+
+#CircleCI
+#The CircleCI configuration uses a Docker image (circleci/node:latest) to run the pipeline. 
+#It defines a build job that installs dependencies (npm install) and runs tests (npm test). 
+#Environment variables (NODE_ENV and API_KEY) are injected into the job.
+
+#Azure DevOps Pipeline
+#This pipeline triggers on pushes to the main branch and runs on ubuntu-latest. 
+#It sets environment variables (NODE_ENV and API_KEY) and executes a script to install dependencies (npm install) and run tests (npm test).
+
+name: Quality Gates Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  code-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: Run Tests with Coverage
+        run: |
+          ./gradlew test jacocoTestReport
+          bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CODECOV_TOKEN }}
+      
+      - name: Check Code Coverage Threshold
+        run: |
+          coverage=$(grep -oP 'TOTAL\s+\d+\s+\d+\s+\d+\s+\d+\.\d+' build/reports/jacoco/test/jacocoTestReport.csv | awk '{print $4}')
+          if (( $(echo "$coverage < 80.0" | bc -l) )); then
+            echo "Code coverage is below threshold: $coverage%"
+            exit 1
+          fi
+        shell: bash
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Run Security Scan
+        uses: snyk/actions/cli@v3
+        with:
+          args: test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Fail on High/Critical Vulnerabilities
+        run: |
+          if snyk_output=$(snyk test --severity-threshold=high); then
+            echo "No high/critical vulnerabilities found."
+          else
+            echo "High/critical vulnerabilities detected:"
+            echo "$snyk_output"
+            exit 1
+          fi
+        shell: bash
+
+  testing-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Run Tests
+        run: |
+          ./gradlew test
+        continue-on-error: false
+
+      - name: Analyze Test Results
+        run: |
+          if grep -q 'FAILED' build/test-results/test/TEST-*.xml; then
+            echo "Test failures detected."
+            exit 1
+          else
+            echo "All tests passed successfully."
+          fi
+        shell: bash
+
+
+
+
+#Jenkinsfile
+pipeline {
+    agent any
+    environment {
+        NODE_ENV = 'test'
+        API_KEY = credentials('my-secret-api-key')
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'npm test'
+            }
+        }
+    }
+}
+
+
+#GitLab CI
+NODE_ENV: "test"
+  API_KEY: "${MY_SECRET_API_KEY}"
+
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  script:
+    - npm install
+
+test:
+  stage: test
+  script:
+    - npm test
+
+
+#Travis CI
+env:
+  global:
+    - NODE_ENV=test
+    - secure: "MY_SECRET_API_KEY"
+
+script:
+  - npm install
+  - npm test
+
+
+# CircleCI configuration
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/node:latest
+    environment:
+      NODE_ENV: test
+      API_KEY: $MY_SECRET_API_KEY
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: npm install
+      - run:
+          name: Run Tests
+          command: npm test
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+
+
+#AzureDevOps Pipeline
+trigger:
+  branches:
+    include:
+      - main
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  NODE_ENV: 'test'
+  API_KEY: $(MY_SECRET_API_KEY)
+
+steps:
+  - script: |
+      npm install
+      npm test
+    displayName: 'Install Dependencies and Run Tests'

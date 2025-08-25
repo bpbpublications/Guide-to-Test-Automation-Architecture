@@ -1,0 +1,50 @@
+Unsanitized input (Injection attacks)
+Example: A web application constructs SQL queries directly from user input:
+SELECT * FROM users WHERE username = '" + input + "'";
+
+This is vulnerable to SQL injection, allowing attackers to manipulate the query.
+
+Poor encryption practices
+Example: An application uses weak or outdated encryption algorithms like MD5 or DES:
+MessageDigest md = MessageDigest.getInstance("MD5");
+
+
+
+Vulnerability: User input is directly used to build SQL queries without sanitization.
+# Vulnerable Python example
+username = input("Enter username:")
+query = "SELECT * FROM users WHERE username = '" + username + "';"
+
+What an attacker might input:
+' OR '1'='1
+
+
+Vulnerability: User input is rendered on a webpage without proper encoding or escaping.
+<!-- Vulnerable HTML snippet -->
+<p>Welcome, <?php echo $_GET['name']; ?></p>
+
+What an attacker might input:
+<script>alert('Hacked!');</script>
+
+
+Vulnerability: Weak logic or misconfiguration in authentication checks.
+// Client-side-only authentication check (bad practice)
+if (localStorage.getItem("auth") === "true") {
+    showAdminPanel();
+}
+
+
+
+Vulnerability: APIs lack proper authentication, authorization, or data validation.
+Example: A mobile app’s API allows any user to fetch other users' data:
+GET /api/users/12345
+
+
+
+Vulnerability: Users can gain access to features or data beyond their role.
+Example: A regular user can change their role via a client-side request:
+POST /api/updateUser
+{
+  "username": "bob",
+  "role": "admin"
+}
